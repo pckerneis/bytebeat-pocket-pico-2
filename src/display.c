@@ -469,8 +469,8 @@ void display_draw_char(char c, uint16_t x, uint16_t y, uint16_t fg, uint16_t bg)
         uint8_t row_data = font_data[row];
         
         for (int col = 0; col < char_width; col++) {
-            // Check if pixel is set (MSB first)
-            bool pixel = (row_data & (0x80 >> col)) != 0;
+            // Check if pixel is set (LSB first to fix horizontal mirroring)
+            bool pixel = (row_data & (0x01 << col)) != 0;
             uint16_t color = pixel ? fg : bg;
             
             // Write pixel color
