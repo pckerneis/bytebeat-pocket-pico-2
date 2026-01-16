@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
 #define TEXT_BUFFER_SIZE 256
 
 // Display state

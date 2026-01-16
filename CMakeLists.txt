@@ -61,6 +61,7 @@ target_link_libraries(bytebeat-pocket-pico-2
     hardware_timer
     hardware_clocks
     hardware_i2c
+    hardware_spi
     hardware_flash
     hardware_sync
 )
