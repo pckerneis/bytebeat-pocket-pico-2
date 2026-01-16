@@ -17,7 +17,7 @@ extern uint32_t toasterStartTime;
 void display_init(void);
 void display_update(void);
 void display_clear(void);
-void display_set_cursor(uint8_t x, uint8_t y);
+void display_set_cursor(uint16_t x, uint16_t y);
 void display_print(const char* text);
 void show_toaster(const char* msg);
 void draw_error_banner(const char* error);
