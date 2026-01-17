@@ -423,62 +423,126 @@ void draw_error_banner(const char* error) {
     fg_color = COLOR_WHITE;
 }
 
+// Static variables to track previous state
+static char prevTextBuffer[TEXT_BUFFER_SIZE] = {0};
+static uint8_t prevTextLen = 0;
+static uint8_t prevCursor = 0;
+static bool prevIsPlaying = false;
+static uint8_t prevSlot = 0;
+static enum CompileError prevError = ERR_NONE;
+
 void draw_expression_editor(void) {
-    // Clear screen
-    display_clear();
+    // Check what needs to be redrawn
+    bool textChanged = (text_len != prevTextLen) || (memcmp(textBuffer, prevTextBuffer, text_len) != 0);
+    bool cursorMoved = (cursor != prevCursor);
+    bool headerChanged = (isPlaying != prevIsPlaying) || (current_slot != prevSlot);
+    bool errorChanged = (compileError != prevError);
     
-    // Draw header bar
-    lcd_fill_rect(0, 0, SCREEN_WIDTH, 24, COLOR_BLUE);
-    fg_color = COLOR_WHITE;
-    bg_color = COLOR_BLUE;
-    
-    display_set_cursor(10, 6);
-    char slotStr[16];
-    sprintf(slotStr, "Preset %d", current_slot + 1);
-    display_print(slotStr);
-    
-    display_set_cursor(SCREEN_WIDTH - 56, 6);
-    if (isPlaying) {
-        display_print("PLAY");
-    } else {
-        display_print("STOP");
+    // Draw header bar only if changed
+    if (headerChanged) {
+        lcd_fill_rect(0, 0, SCREEN_WIDTH, 24, COLOR_BLUE);
+        fg_color = COLOR_WHITE;
+        bg_color = COLOR_BLUE;
+        
+        display_set_cursor(10, 6);
+        char slotStr[16];
+        sprintf(slotStr, "Preset %d", current_slot + 1);
+        display_print(slotStr);
+        
+        display_set_cursor(SCREEN_WIDTH - 56, 6);
+        if (isPlaying) {
+            display_print("PLAY");
+        } else {
+            display_print("STOP");
+        }
+        
+        prevIsPlaying = isPlaying;
+        prevSlot = current_slot;
     }
-    
-    // Reset cursor position to prevent it from affecting expression drawing
-    cursor_x = 0;
-    cursor_y = 0;
     
     // Reset colors for main text area
     fg_color = COLOR_WHITE;
     bg_color = COLOR_BLACK;
     
-    // Draw expression text
-    const int char_width = CHAR_W;
-    const int char_height = CHAR_H;
-    const int start_y = 30;
-    
-    uint16_t x = 0;
-    uint16_t y = start_y;
-    
-    for (uint8_t i = 0; i < text_len && y < SCREEN_HEIGHT - 40; i++) {
-        if (x >= SCREEN_WIDTH - char_width) {
-            x = 0;
-            y += char_height;
-        }
+    // Only redraw text if it changed or cursor moved
+    if (textChanged || cursorMoved) {
+        const int char_width = CHAR_W;
+        const int char_height = CHAR_H;
+        const int start_y = 30;
         
-        // Highlight cursor position - show character in yellow when over text
-        if (i == cursor) {
-            display_draw_char(textBuffer[i], x, y, COLOR_YELLOW, bg_color);
+        // If text length changed significantly, clear and redraw everything
+        if (textChanged && (text_len < prevTextLen - 1 || text_len > prevTextLen + 1)) {
+            lcd_fill_rect(0, 30, SCREEN_WIDTH, SCREEN_HEIGHT - 70, COLOR_BLACK);
+            
+            uint16_t x = 0;
+            uint16_t y = start_y;
+            
+            for (uint8_t i = 0; i < text_len && y < SCREEN_HEIGHT - 40; i++) {
+                if (x >= SCREEN_WIDTH - char_width) {
+                    x = 0;
+                    y += char_height;
+                }
+                
+                if (i == cursor) {
+                    display_draw_char(textBuffer[i], x, y, COLOR_YELLOW, bg_color);
+                } else {
+                    display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
+                }
+                
+                x += char_width;
+            }
+            
+            if (cursor == text_len) {
+                display_draw_char('_', x, y, COLOR_YELLOW, bg_color);
+            }
         } else {
-            display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
+            // Incremental update - only redraw changed characters
+            uint16_t x = 0;
+            uint16_t y = start_y;
+            uint8_t maxLen = (text_len > prevTextLen) ? text_len : prevTextLen;
+            
+            for (uint8_t i = 0; i <= maxLen && y < SCREEN_HEIGHT - 40; i++) {
+                if (x >= SCREEN_WIDTH - char_width) {
+                    x = 0;
+                    y += char_height;
+                }
+                
+                bool needsRedraw = false;
+                
+                // Check if this position needs redrawing
+                if (i == cursor || i == prevCursor) {
+                    needsRedraw = true; // Cursor moved to/from this position
+                } else if (i < text_len && i < prevTextLen) {
+                    if (textBuffer[i] != prevTextBuffer[i]) {
+                        needsRedraw = true; // Character changed
+                    }
+                } else if (i < text_len || i < prevTextLen) {
+                    needsRedraw = true; // Length changed at this position
+                }
+                
+                if (needsRedraw) {
+                    if (i < text_len) {
+                        if (i == cursor) {
+                            display_draw_char(textBuffer[i], x, y, COLOR_YELLOW, bg_color);
+                        } else {
+                            display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
+                        }
+                    } else if (i == cursor && cursor == text_len) {
+                        display_draw_char('_', x, y, COLOR_YELLOW, bg_color);
+                    } else {
+                        // Clear this character position
+                        lcd_fill_rect(x, y, char_width, char_height, COLOR_BLACK);
+                    }
+                }
+                
+                x += char_width;
+            }
         }
         
-        x += char_width;
-    }
-    
-    // Draw underscore cursor only at end of text
-    if (cursor == text_len) {
-        display_draw_char('_', x, y, COLOR_YELLOW, bg_color);
+        // Update previous state
+        memcpy(prevTextBuffer, textBuffer, text_len);
+        prevTextLen = text_len;
+        prevCursor = cursor;
     }
     
     // Draw toaster or error at bottom
@@ -494,16 +558,22 @@ void draw_expression_editor(void) {
             display_set_cursor(10, SCREEN_HEIGHT - 18);
             display_print(toasterMsg);
         }
-    } else if (compileError != ERR_NONE) {
-        const char* errorMsg = "ERR: UNKNOWN";
-        switch (compileError) {
-            case ERR_PAREN: errorMsg = "ERR: PAREN"; break;
-            case ERR_STACK: errorMsg = "ERR: STACK"; break;
-            case ERR_TOKEN: errorMsg = "ERR: TOKEN"; break;
-            case ERR_PROGRAM_TOO_LONG: errorMsg = "ERR: TOO LONG"; break;
-            default: break;
+    } else if (compileError != ERR_NONE || errorChanged) {
+        if (compileError != ERR_NONE) {
+            const char* errorMsg = "ERR: UNKNOWN";
+            switch (compileError) {
+                case ERR_PAREN: errorMsg = "ERR: PAREN"; break;
+                case ERR_STACK: errorMsg = "ERR: STACK"; break;
+                case ERR_TOKEN: errorMsg = "ERR: TOKEN"; break;
+                case ERR_PROGRAM_TOO_LONG: errorMsg = "ERR: TOO LONG"; break;
+                default: break;
+            }
+            draw_error_banner(errorMsg);
+        } else {
+            // Clear error area if error was cleared
+            lcd_fill_rect(0, SCREEN_HEIGHT - 24, SCREEN_WIDTH, 24, COLOR_BLACK);
         }
-        draw_error_banner(errorMsg);
+        prevError = compileError;
     }
 }
 
