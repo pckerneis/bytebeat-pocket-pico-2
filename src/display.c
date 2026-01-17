@@ -406,74 +406,91 @@ static bool prevIsPlaying = false;
 static uint8_t prevSlot = 0;
 static enum CompileError prevError = ERR_NONE;
 
-// Helper function to determine syntax color for a character at position
-static uint16_t get_syntax_color(uint8_t pos) {
-    if (pos >= text_len) return COLOR_WHITE;
-    
-    char c = textBuffer[pos];
-    
-    // Check for variable 't'
-    if (c == 't') {
-        // Make sure it's not part of a hex number (0x...)
-        if (pos == 0 || (textBuffer[pos-1] != 'x' && textBuffer[pos-1] != 'X')) {
-            return SYNTAX_VAR;
+// Cached syntax colors for each character position
+static uint16_t syntaxColors[TEXT_BUFFER_SIZE] = {0};
+static bool syntaxColorsCached = false;
+
+// Parse entire expression and cache syntax colors
+static void update_syntax_colors(void) {
+    for (uint8_t pos = 0; pos < text_len; pos++) {
+        char c = textBuffer[pos];
+        
+        // Check for variable 't'
+        if (c == 't') {
+            // Make sure it's not part of a hex number (0x...)
+            if (pos == 0 || (textBuffer[pos-1] != 'x' && textBuffer[pos-1] != 'X')) {
+                syntaxColors[pos] = SYNTAX_VAR;
+                continue;
+            }
         }
-    }
-    
-    // Check for operators
-    if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
-        c == '&' || c == '|' || c == '^' || c == '~' ||
-        c == '<' || c == '>' || c == '=' ||
-        c == '(' || c == ')' || c == '?' || c == ':') {
-        return SYNTAX_OPERATOR;
-    }
-    
-    // Check for numbers (digits, hex prefix, binary prefix, decimal point)
-    if (c >= '0' && c <= '9') {
-        return SYNTAX_NUMBER;
-    }
-    
-    // Hex digits a-f, A-F (check if part of hex number)
-    if ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
-        // Look backwards for 0x or 0X prefix
-        for (int i = pos - 1; i >= 0; i--) {
-            if (textBuffer[i] == 'x' || textBuffer[i] == 'X') {
-                if (i > 0 && textBuffer[i-1] == '0') {
-                    return SYNTAX_NUMBER;
+        
+        // Check for operators
+        if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
+            c == '&' || c == '|' || c == '^' || c == '~' ||
+            c == '<' || c == '>' || c == '=' ||
+            c == '(' || c == ')' || c == '?' || c == ':') {
+            syntaxColors[pos] = SYNTAX_OPERATOR;
+            continue;
+        }
+        
+        // Check for numbers (digits)
+        if (c >= '0' && c <= '9') {
+            syntaxColors[pos] = SYNTAX_NUMBER;
+            continue;
+        }
+        
+        // Hex digits a-f, A-F (check if part of hex number)
+        if ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+            // Look backwards for 0x or 0X prefix
+            bool isHex = false;
+            for (int i = pos - 1; i >= 0; i--) {
+                if (textBuffer[i] == 'x' || textBuffer[i] == 'X') {
+                    if (i > 0 && textBuffer[i-1] == '0') {
+                        isHex = true;
+                    }
+                    break;
                 }
-                break;
+                // Stop if we hit a non-hex character
+                if (!((textBuffer[i] >= '0' && textBuffer[i] <= '9') ||
+                      (textBuffer[i] >= 'a' && textBuffer[i] <= 'f') ||
+                      (textBuffer[i] >= 'A' && textBuffer[i] <= 'F'))) {
+                    break;
+                }
             }
-            // Stop if we hit a non-hex character
-            if (!((textBuffer[i] >= '0' && textBuffer[i] <= '9') ||
-                  (textBuffer[i] >= 'a' && textBuffer[i] <= 'f') ||
-                  (textBuffer[i] >= 'A' && textBuffer[i] <= 'F'))) {
-                break;
+            if (isHex) {
+                syntaxColors[pos] = SYNTAX_NUMBER;
+                continue;
             }
         }
-    }
-    
-    // 'x' or 'X' in hex prefix 0x
-    if ((c == 'x' || c == 'X') && pos > 0 && textBuffer[pos-1] == '0') {
-        return SYNTAX_NUMBER;
-    }
-    
-    // 'b' or 'B' in binary prefix 0b
-    if ((c == 'b' || c == 'B') && pos > 0 && textBuffer[pos-1] == '0') {
-        return SYNTAX_NUMBER;
-    }
-    
-    // Decimal point
-    if (c == '.') {
-        // Check if surrounded by digits
-        bool hasDigitBefore = (pos > 0 && textBuffer[pos-1] >= '0' && textBuffer[pos-1] <= '9');
-        bool hasDigitAfter = (pos < text_len - 1 && textBuffer[pos+1] >= '0' && textBuffer[pos+1] <= '9');
-        if (hasDigitBefore || hasDigitAfter) {
-            return SYNTAX_NUMBER;
+        
+        // 'x' or 'X' in hex prefix 0x
+        if ((c == 'x' || c == 'X') && pos > 0 && textBuffer[pos-1] == '0') {
+            syntaxColors[pos] = SYNTAX_NUMBER;
+            continue;
         }
+        
+        // 'b' or 'B' in binary prefix 0b
+        if ((c == 'b' || c == 'B') && pos > 0 && textBuffer[pos-1] == '0') {
+            syntaxColors[pos] = SYNTAX_NUMBER;
+            continue;
+        }
+        
+        // Decimal point
+        if (c == '.') {
+            // Check if surrounded by digits
+            bool hasDigitBefore = (pos > 0 && textBuffer[pos-1] >= '0' && textBuffer[pos-1] <= '9');
+            bool hasDigitAfter = (pos < text_len - 1 && textBuffer[pos+1] >= '0' && textBuffer[pos+1] <= '9');
+            if (hasDigitBefore || hasDigitAfter) {
+                syntaxColors[pos] = SYNTAX_NUMBER;
+                continue;
+            }
+        }
+        
+        // Default color
+        syntaxColors[pos] = COLOR_WHITE;
     }
     
-    // Default color
-    return COLOR_WHITE;
+    syntaxColorsCached = true;
 }
 
 void draw_expression_editor(void) {
@@ -482,6 +499,11 @@ void draw_expression_editor(void) {
     bool cursorMoved = (cursor != prevCursor);
     bool headerChanged = (isPlaying != prevIsPlaying) || (current_slot != prevSlot);
     bool errorChanged = (compileError != prevError);
+    
+    // Update syntax colors if text changed
+    if (textChanged || !syntaxColorsCached) {
+        update_syntax_colors();
+    }
     
     // Draw header bar only if changed
     if (headerChanged) {
@@ -532,9 +554,8 @@ void draw_expression_editor(void) {
                     // Inverted display: black text on white background
                     display_draw_char(textBuffer[i], x, y, COLOR_BLACK, COLOR_WHITE);
                 } else {
-                    // Apply syntax coloring
-                    uint16_t color = get_syntax_color(i);
-                    display_draw_char(textBuffer[i], x, y, color, bg_color);
+                    // Use cached syntax color
+                    display_draw_char(textBuffer[i], x, y, syntaxColors[i], bg_color);
                 }
                 
                 x += char_width;
@@ -575,9 +596,8 @@ void draw_expression_editor(void) {
                             // Inverted display: black text on white background
                             display_draw_char(textBuffer[i], x, y, COLOR_BLACK, COLOR_WHITE);
                         } else {
-                            // Apply syntax coloring
-                            uint16_t color = get_syntax_color(i);
-                            display_draw_char(textBuffer[i], x, y, color, bg_color);
+                            // Use cached syntax color
+                            display_draw_char(textBuffer[i], x, y, syntaxColors[i], bg_color);
                         }
                     } else if (i == cursor && cursor == text_len) {
                         // White underscore at end of text
