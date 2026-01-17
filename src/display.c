@@ -60,6 +60,10 @@ static bool use_framebuffer = false; // Set to true if you want double buffering
 #define COLOR_GRAY    0x8410
 #define COLOR_VIOLET  0x79bf
 
+#define SYNTAX_OPERATOR 0xce59
+#define SYNTAX_NUMBER   0x6eb7
+#define SYNTAX_VAR      0xfdce
+
 // Current colors
 static uint16_t fg_color = COLOR_WHITE;
 static uint16_t bg_color = COLOR_BLACK;
@@ -402,6 +406,76 @@ static bool prevIsPlaying = false;
 static uint8_t prevSlot = 0;
 static enum CompileError prevError = ERR_NONE;
 
+// Helper function to determine syntax color for a character at position
+static uint16_t get_syntax_color(uint8_t pos) {
+    if (pos >= text_len) return COLOR_WHITE;
+    
+    char c = textBuffer[pos];
+    
+    // Check for variable 't'
+    if (c == 't') {
+        // Make sure it's not part of a hex number (0x...)
+        if (pos == 0 || (textBuffer[pos-1] != 'x' && textBuffer[pos-1] != 'X')) {
+            return SYNTAX_VAR;
+        }
+    }
+    
+    // Check for operators
+    if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' ||
+        c == '&' || c == '|' || c == '^' || c == '~' ||
+        c == '<' || c == '>' || c == '=' ||
+        c == '(' || c == ')' || c == '?' || c == ':') {
+        return SYNTAX_OPERATOR;
+    }
+    
+    // Check for numbers (digits, hex prefix, binary prefix, decimal point)
+    if (c >= '0' && c <= '9') {
+        return SYNTAX_NUMBER;
+    }
+    
+    // Hex digits a-f, A-F (check if part of hex number)
+    if ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+        // Look backwards for 0x or 0X prefix
+        for (int i = pos - 1; i >= 0; i--) {
+            if (textBuffer[i] == 'x' || textBuffer[i] == 'X') {
+                if (i > 0 && textBuffer[i-1] == '0') {
+                    return SYNTAX_NUMBER;
+                }
+                break;
+            }
+            // Stop if we hit a non-hex character
+            if (!((textBuffer[i] >= '0' && textBuffer[i] <= '9') ||
+                  (textBuffer[i] >= 'a' && textBuffer[i] <= 'f') ||
+                  (textBuffer[i] >= 'A' && textBuffer[i] <= 'F'))) {
+                break;
+            }
+        }
+    }
+    
+    // 'x' or 'X' in hex prefix 0x
+    if ((c == 'x' || c == 'X') && pos > 0 && textBuffer[pos-1] == '0') {
+        return SYNTAX_NUMBER;
+    }
+    
+    // 'b' or 'B' in binary prefix 0b
+    if ((c == 'b' || c == 'B') && pos > 0 && textBuffer[pos-1] == '0') {
+        return SYNTAX_NUMBER;
+    }
+    
+    // Decimal point
+    if (c == '.') {
+        // Check if surrounded by digits
+        bool hasDigitBefore = (pos > 0 && textBuffer[pos-1] >= '0' && textBuffer[pos-1] <= '9');
+        bool hasDigitAfter = (pos < text_len - 1 && textBuffer[pos+1] >= '0' && textBuffer[pos+1] <= '9');
+        if (hasDigitBefore || hasDigitAfter) {
+            return SYNTAX_NUMBER;
+        }
+    }
+    
+    // Default color
+    return COLOR_WHITE;
+}
+
 void draw_expression_editor(void) {
     // Check what needs to be redrawn
     bool textChanged = (text_len != prevTextLen) || (memcmp(textBuffer, prevTextBuffer, text_len) != 0);
@@ -458,7 +532,9 @@ void draw_expression_editor(void) {
                     // Inverted display: black text on white background
                     display_draw_char(textBuffer[i], x, y, COLOR_BLACK, COLOR_WHITE);
                 } else {
-                    display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
+                    // Apply syntax coloring
+                    uint16_t color = get_syntax_color(i);
+                    display_draw_char(textBuffer[i], x, y, color, bg_color);
                 }
                 
                 x += char_width;
@@ -499,7 +575,9 @@ void draw_expression_editor(void) {
                             // Inverted display: black text on white background
                             display_draw_char(textBuffer[i], x, y, COLOR_BLACK, COLOR_WHITE);
                         } else {
-                            display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
+                            // Apply syntax coloring
+                            uint16_t color = get_syntax_color(i);
+                            display_draw_char(textBuffer[i], x, y, color, bg_color);
                         }
                     } else if (i == cursor && cursor == text_len) {
                         // White underscore at end of text
