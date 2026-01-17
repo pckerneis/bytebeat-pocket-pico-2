@@ -403,7 +403,7 @@ static char prevTextBuffer[TEXT_BUFFER_SIZE] = {0};
 static uint8_t prevTextLen = 0;
 static uint8_t prevCursor = 0;
 static bool prevIsPlaying = false;
-static uint8_t prevSlot = 0;
+static uint8_t prevSlot = 255; // Initialize to invalid value to force initial header draw
 static enum CompileError prevError = ERR_NONE;
 
 // Cached syntax colors for each character position
