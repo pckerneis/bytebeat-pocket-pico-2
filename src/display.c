@@ -466,9 +466,9 @@ void draw_expression_editor(void) {
             y += char_height;
         }
         
-        // Highlight cursor position
+        // Highlight cursor position - show character in yellow when over text
         if (i == cursor) {
-            display_draw_char('_', x, y, COLOR_YELLOW, bg_color);
+            display_draw_char(textBuffer[i], x, y, COLOR_YELLOW, bg_color);
         } else {
             display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
         }
@@ -476,7 +476,7 @@ void draw_expression_editor(void) {
         x += char_width;
     }
     
-    // Draw cursor at end if needed
+    // Draw underscore cursor only at end of text
     if (cursor == text_len) {
         display_draw_char('_', x, y, COLOR_YELLOW, bg_color);
     }

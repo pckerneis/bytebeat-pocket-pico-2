@@ -7,10 +7,10 @@
 #include <stdio.h>
 
 // GPIO pin configuration
-// Rows are outputs (driven LOW to scan)
-const uint8_t row_pins[ROWS] = {16, 17, 18, 19};
-// Cols are inputs (with pullups)
+// Columns are outputs (driven LOW to scan) - DRIVE side
 const uint8_t col_pins[COLS] = {20, 21, 22, 26, 27};
+// Rows are inputs (with pullups) - SENSE side
+const uint8_t row_pins[ROWS] = {16, 17, 18, 19};
 
 // Key state tracking
 uint8_t keyStates[KEY_COUNT] = {0};
@@ -92,18 +92,18 @@ const Action memLayer[KEY_COUNT] = {
 };
 
 void keyboard_init(void) {
-    // Configure row pins as outputs (idle HIGH)
-    for (int r = 0; r < ROWS; r++) {
-        gpio_init(row_pins[r]);
-        gpio_set_dir(row_pins[r], GPIO_OUT);
-        gpio_put(row_pins[r], 1); // Idle HIGH
-    }
-    
-    // Configure column pins as inputs with pullups
+    // Configure column pins as outputs (idle HIGH) - DRIVE side
     for (int c = 0; c < COLS; c++) {
         gpio_init(col_pins[c]);
-        gpio_set_dir(col_pins[c], GPIO_IN);
-        gpio_pull_up(col_pins[c]);
+        gpio_set_dir(col_pins[c], GPIO_OUT);
+        gpio_put(col_pins[c], 1); // Idle HIGH
+    }
+    
+    // Configure row pins as inputs with pullups - SENSE side
+    for (int r = 0; r < ROWS; r++) {
+        gpio_init(row_pins[r]);
+        gpio_set_dir(row_pins[r], GPIO_IN);
+        gpio_pull_up(row_pins[r]);
     }
     
     printf("Keyboard matrix initialized\n");
@@ -113,17 +113,17 @@ void keyboard_scan(void) {
     // Save previous states
     memcpy(keyStatesPrev, keyStates, sizeof(keyStates));
     
-    // Scan all keys
-    for (int r = 0; r < ROWS; r++) {
-        gpio_put(row_pins[r], 0); // Drive row LOW
+    // Scan all keys - drive each column LOW and sense rows
+    for (int c = 0; c < COLS; c++) {
+        gpio_put(col_pins[c], 0); // Drive column LOW
         sleep_us(5); // Settle time
         
-        for (int c = 0; c < COLS; c++) {
+        for (int r = 0; r < ROWS; r++) {
             uint8_t keyIndex = r * COLS + c;
-            keyStates[keyIndex] = (gpio_get(col_pins[c]) == 0) ? 1 : 0;
+            keyStates[keyIndex] = (gpio_get(row_pins[r]) == 0) ? 1 : 0;
         }
         
-        gpio_put(row_pins[r], 1); // Return to HIGH
+        gpio_put(col_pins[c], 1); // Return to HIGH
     }
 }
 
