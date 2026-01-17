@@ -484,7 +484,8 @@ void draw_expression_editor(void) {
                 }
                 
                 if (i == cursor) {
-                    display_draw_char(textBuffer[i], x, y, COLOR_YELLOW, bg_color);
+                    // Inverted display: black text on white background
+                    display_draw_char(textBuffer[i], x, y, COLOR_BLACK, COLOR_WHITE);
                 } else {
                     display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
                 }
@@ -493,7 +494,8 @@ void draw_expression_editor(void) {
             }
             
             if (cursor == text_len) {
-                display_draw_char('_', x, y, COLOR_YELLOW, bg_color);
+                // White underscore at end of text
+                display_draw_char('_', x, y, COLOR_WHITE, bg_color);
             }
         } else {
             // Incremental update - only redraw changed characters
@@ -523,12 +525,14 @@ void draw_expression_editor(void) {
                 if (needsRedraw) {
                     if (i < text_len) {
                         if (i == cursor) {
-                            display_draw_char(textBuffer[i], x, y, COLOR_YELLOW, bg_color);
+                            // Inverted display: black text on white background
+                            display_draw_char(textBuffer[i], x, y, COLOR_BLACK, COLOR_WHITE);
                         } else {
                             display_draw_char(textBuffer[i], x, y, fg_color, bg_color);
                         }
                     } else if (i == cursor && cursor == text_len) {
-                        display_draw_char('_', x, y, COLOR_YELLOW, bg_color);
+                        // White underscore at end of text
+                        display_draw_char('_', x, y, COLOR_WHITE, bg_color);
                     } else {
                         // Clear this character position
                         lcd_fill_rect(x, y, char_width, char_height, COLOR_BLACK);
