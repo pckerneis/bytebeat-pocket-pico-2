@@ -58,6 +58,7 @@ static bool use_framebuffer = false; // Set to true if you want double buffering
 #define COLOR_CYAN    0x07FF
 #define COLOR_MAGENTA 0xF81F
 #define COLOR_GRAY    0x8410
+#define COLOR_VIOLET  0x79bf
 
 // Current colors
 static uint16_t fg_color = COLOR_WHITE;
@@ -410,9 +411,9 @@ void draw_expression_editor(void) {
     
     // Draw header bar only if changed
     if (headerChanged) {
-        lcd_fill_rect(0, 0, SCREEN_WIDTH, 24, COLOR_BLUE);
+        lcd_fill_rect(0, 0, SCREEN_WIDTH, 24, COLOR_VIOLET);
         fg_color = COLOR_WHITE;
-        bg_color = COLOR_BLUE;
+        bg_color = COLOR_VIOLET;
         
         display_set_cursor(10, 6);
         char slotStr[16];
@@ -524,11 +525,24 @@ void draw_expression_editor(void) {
         uint32_t now = to_ms_since_boot(get_absolute_time());
         if ((now - toasterStartTime) > TOASTER_DURATION) {
             toasterVisible = false;
-            oledDirty = true;
+            // Clear toaster area
+            lcd_fill_rect(0, SCREEN_HEIGHT - 24, SCREEN_WIDTH, 24, COLOR_BLACK);
+            // Redraw error if present
+            if (compileError != ERR_NONE) {
+                const char* errorMsg = "ERR: UNKNOWN";
+                switch (compileError) {
+                    case ERR_PAREN: errorMsg = "ERR: PAREN"; break;
+                    case ERR_STACK: errorMsg = "ERR: STACK"; break;
+                    case ERR_TOKEN: errorMsg = "ERR: TOKEN"; break;
+                    case ERR_PROGRAM_TOO_LONG: errorMsg = "ERR: TOO LONG"; break;
+                    default: break;
+                }
+                draw_error_banner(errorMsg);
+            }
         } else {
-            lcd_fill_rect(0, SCREEN_HEIGHT - 24, SCREEN_WIDTH, 24, COLOR_GREEN);
-            fg_color = COLOR_BLACK;
-            bg_color = COLOR_GREEN;
+            lcd_fill_rect(0, SCREEN_HEIGHT - 24, SCREEN_WIDTH, 24, COLOR_VIOLET);
+            fg_color = COLOR_WHITE;
+            bg_color = COLOR_VIOLET;
             display_set_cursor(10, SCREEN_HEIGHT - 18);
             display_print(toasterMsg);
         }
@@ -552,6 +566,14 @@ void draw_expression_editor(void) {
 }
 
 void display_update(void) {
+    // Check if toaster needs to expire
+    if (toasterVisible) {
+        uint32_t now = to_ms_since_boot(get_absolute_time());
+        if ((now - toasterStartTime) > TOASTER_DURATION) {
+            oledDirty = true; // Force redraw to clear toaster
+        }
+    }
+    
     if (oledDirty) {
         draw_expression_editor();
         oledDirty = false;
