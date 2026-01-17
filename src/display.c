@@ -1,6 +1,7 @@
 #include "display.h"
 #include "rpn_vm.h"
 #include "ui.h"
+#include "keyboard.h"
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
@@ -404,6 +405,7 @@ static uint8_t prevTextLen = 0;
 static uint8_t prevCursor = 0;
 static bool prevIsPlaying = false;
 static uint8_t prevSlot = 255; // Initialize to invalid value to force initial header draw
+static KeyMode prevMode = 255; // Initialize to invalid value to force initial draw
 static enum CompileError prevError = ERR_NONE;
 
 // Cached syntax colors for each character position
@@ -497,7 +499,7 @@ void draw_expression_editor(void) {
     // Check what needs to be redrawn
     bool textChanged = (text_len != prevTextLen) || (memcmp(textBuffer, prevTextBuffer, text_len) != 0);
     bool cursorMoved = (cursor != prevCursor);
-    bool headerChanged = (isPlaying != prevIsPlaying) || (current_slot != prevSlot);
+    bool headerChanged = (isPlaying != prevIsPlaying) || (current_slot != prevSlot) || (currentMode != prevMode);
     bool errorChanged = (compileError != prevError);
     
     // Update syntax colors if text changed
@@ -511,20 +513,33 @@ void draw_expression_editor(void) {
         fg_color = COLOR_WHITE;
         bg_color = COLOR_VIOLET;
         
+        // Left: Preset number
         display_set_cursor(10, 6);
         char slotStr[16];
-        sprintf(slotStr, "Preset %d", current_slot + 1);
+        sprintf(slotStr, "P%d", current_slot + 1);
         display_print(slotStr);
         
-        display_set_cursor(SCREEN_WIDTH - 56, 6);
-        if (isPlaying) {
-            display_print("PLAY");
-        } else {
-            display_print("STOP");
+        // Center: PLAY/STOP status
+        const char* statusStr = isPlaying ? "PLAY" : "STOP";
+        uint16_t statusWidth = strlen(statusStr) * 11; // CHAR_W = 11
+        display_set_cursor((SCREEN_WIDTH - statusWidth) / 2, 6);
+        display_print(statusStr);
+        
+        // Right: Key mode
+        const char* modeStr;
+        switch (currentMode) {
+            case MODE_FN1: modeStr = "FN1"; break;
+            case MODE_FN2: modeStr = "FN2"; break;
+            case MODE_MEM: modeStr = "MEM"; break;
+            default: modeStr = "BASE"; break;
         }
+        uint16_t modeWidth = strlen(modeStr) * 11; // CHAR_W = 11
+        display_set_cursor(SCREEN_WIDTH - modeWidth - 10, 6);
+        display_print(modeStr);
         
         prevIsPlaying = isPlaying;
         prevSlot = current_slot;
+        prevMode = currentMode;
     }
     
     // Reset colors for main text area
