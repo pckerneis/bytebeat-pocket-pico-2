@@ -14,7 +14,6 @@ const uint8_t row_pins[ROWS] = {16, 17, 18, 19};
 
 // Key state tracking
 uint8_t keyStates[KEY_COUNT] = {0};
-uint8_t keyStatesPrev[KEY_COUNT] = {0};
 
 // Current mode
 KeyMode currentMode = MODE_BASE;
@@ -110,13 +109,10 @@ void keyboard_init(void) {
 }
 
 void keyboard_scan(void) {
-    // Save previous states
-    memcpy(keyStatesPrev, keyStates, sizeof(keyStates));
-    
     // Scan all keys - drive each column LOW and sense rows
     for (int c = 0; c < COLS; c++) {
         gpio_put(col_pins[c], 0); // Drive column LOW
-        sleep_us(5); // Settle time
+        sleep_us(10); // Settle time for stable reading
         
         for (int r = 0; r < ROWS; r++) {
             uint8_t keyIndex = r * COLS + c;
@@ -124,17 +120,18 @@ void keyboard_scan(void) {
         }
         
         gpio_put(col_pins[c], 1); // Return to HIGH
+        sleep_us(5); // Small delay before next column
     }
 }
 
 uint8_t keyboard_get_pressed_key(void) {
-    // Return first newly pressed key (edge detection)
+    // Return first currently pressed key (no edge detection)
     for (uint8_t i = 0; i < KEY_COUNT; i++) {
-        if (keyStates[i] == 1 && keyStatesPrev[i] == 0) {
-            return i; // Key just pressed
+        if (keyStates[i] == 1) {
+            return i; // Key is pressed
         }
     }
-    return 255; // No new key press
+    return 255; // No key pressed
 }
 
 bool keyboard_is_key_pressed(uint8_t key) {

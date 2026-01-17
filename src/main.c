@@ -17,7 +17,9 @@
 #include "preset.h"
 
 #define SAMPLE_US (1000000 / 8000)
-#define KEY_DEBOUNCE_MS 20
+#define KEY_DEBOUNCE_MS 50
+#define KEY_REPEAT_DELAY_MS 500  // Initial delay before repeat starts
+#define KEY_REPEAT_RATE_MS 100   // Repeat rate once started
 
 // Command buffer for serial input
 #define CMD_BUFFER_SIZE 256
@@ -221,8 +223,11 @@ void core1_main() {
     printf("Type 'init' to replay initialization messages\n");
     printf("> ");
 
-    static uint8_t lastKey = 255;
-    static uint32_t lastKeyTime = 0;
+    static uint8_t lastProcessedKey = 255;
+    static uint8_t currentHeldKey = 255;
+    static uint32_t keyPressTime = 0;
+    static uint32_t lastRepeatTime = 0;
+    static bool repeatStarted = false;
 
     ui_handle_play_stop();
 
@@ -232,16 +237,45 @@ void core1_main() {
         // Scan keyboard matrix
         keyboard_scan();
         
-        // Get newly pressed key
+        // Get currently pressed key
         uint8_t k = keyboard_get_pressed_key();
         uint32_t now = to_ms_since_boot(get_absolute_time());
         
-        if (k != 255 && k != lastKey && (now - lastKeyTime) > KEY_DEBOUNCE_MS) {
-            Action action = keyboard_resolve_action(k);
-            if (keyboard_execute_action(action)) {
-                oledDirty = true;
+        if (k != 255) {
+            // Key is pressed
+            if (k != currentHeldKey) {
+                // New key pressed
+                Action action = keyboard_resolve_action(k);
+                if (keyboard_execute_action(action)) {
+                    oledDirty = true;
+                }
+                currentHeldKey = k;
+                keyPressTime = now;
+                lastRepeatTime = now;
+                repeatStarted = false;
+            } else {
+                // Same key held down - check for repeat
+                if (!repeatStarted) {
+                    // Check if initial delay has passed
+                    if ((now - keyPressTime) >= KEY_REPEAT_DELAY_MS) {
+                        repeatStarted = true;
+                        lastRepeatTime = now;
+                    }
+                } else {
+                    // Repeat is active - check repeat rate
+                    if ((now - lastRepeatTime) >= KEY_REPEAT_RATE_MS) {
+                        Action action = keyboard_resolve_action(k);
+                        if (keyboard_execute_action(action)) {
+                            oledDirty = true;
+                        }
+                        lastRepeatTime = now;
+                    }
+                }
             }
-            lastKeyTime = now;
+        } else {
+            // No key pressed - reset state
+            currentHeldKey = 255;
+            repeatStarted = false;
         }
         
         // Handle recompilation when key is released
@@ -268,7 +302,6 @@ void core1_main() {
         }
         
         ui_update();
-        lastKey = k;
         tight_loop_contents();
     }
 }
