@@ -295,46 +295,16 @@ void display_init(void) {
     lcd_write_cmd(0x29); // DISPON
     sleep_ms(20);
     
-    printf("LCD commands sent, testing display...\n");
-    
-    // Test backlight control to verify GPIO is working
-    printf("Testing backlight (should blink)...\n");
-    for (int i = 0; i < 3; i++) {
-        gpio_put(LCD_PIN_BL, 0);
-        sleep_ms(200);
-        gpio_put(LCD_PIN_BL, 1);
-        sleep_ms(200);
-    }
-    printf("Backlight test complete\n");
+    printf("LCD initialization complete\n");
     
     // Clear screen to black
-    printf("\n*** Clearing screen to black ***\n");
     lcd_fill_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_BLACK);
-    printf("Screen cleared\n");
-    sleep_ms(200);
     
-    // Draw test pattern using our working lcd_fill_rect
-    printf("\n*** Drawing test pattern ***\n");
-    lcd_fill_rect(10, 10, 100, 50, COLOR_RED);
-    lcd_fill_rect(10, 70, 100, 50, COLOR_GREEN);
-    lcd_fill_rect(10, 130, 100, 50, COLOR_BLUE);
-    printf("Test pattern complete - should see red, green, blue rectangles\n");
-    
-    // Test text rendering with a simple pattern
-    printf("\n*** Testing text rendering ***\n");
+    // Set default colors
     fg_color = COLOR_WHITE;
     bg_color = COLOR_BLACK;
-    display_set_cursor(120, 10);
-    display_print("LCD OK!");
-    printf("Text test complete - should see 'LCD OK!'\n");
     
-    // Don't set oledDirty yet - let the test pattern stay visible
-    oledDirty = false;
-    printf("LCD initialization complete\n");
-    printf("Test pattern will remain for 5 seconds...\n");
-    sleep_ms(5000);
-    
-    // Now allow UI to draw
+    // Allow UI to draw
     oledDirty = true;
 }
 
