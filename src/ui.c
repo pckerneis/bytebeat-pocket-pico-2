@@ -13,13 +13,6 @@ uint8_t current_slot = 0;
 void ui_init(void) {
     // Initialize display first
     display_init();
-    
-    // Initialize with default expression
-    strcpy(textBuffer, "t*(0xdeadbeef>>(t>>11)&15)/2|t>>3|t>>(t>>10)");//"t*(42&t>>10)");
-    text_len = strlen(textBuffer);
-    cursor = text_len;
-    needsRecompile = true;
-    needsResetT = true;
 }
 
 void ui_handle_play_stop(void) {

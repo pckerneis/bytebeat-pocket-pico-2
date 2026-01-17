@@ -229,8 +229,6 @@ void core1_main() {
     static uint32_t lastRepeatTime = 0;
     static bool repeatStarted = false;
 
-    ui_handle_play_stop();
-
     while (true) {
         check_serial_input();
         
@@ -349,6 +347,8 @@ int main() {
     }
     
     ui_init();
+
+    preset_load(0, textBuffer);
     
     // Compile initial expression
     if (needsRecompile) {
