@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define DEFAULT_NUM_SAMPLES_TO_TEST 1000000
+#define DEFAULT_NUM_SAMPLES_TO_TEST 10000000
 
 // ============================================================================
 // Test Framework
