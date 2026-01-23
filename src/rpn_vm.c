@@ -441,7 +441,8 @@ uint32_t executeRPN(uint32_t tval, const struct RpnInstruction* program, uint8_t
         if (stackTop >= 2) {
           uint32_t b = stack[--stackTop];
           uint32_t a = stack[--stackTop];
-          stack[stackTop++] = a << b;
+          // Clamp shift amount to 0-31 to prevent undefined behavior
+          stack[stackTop++] = a << (b & 31);
         }
         break;
 
@@ -449,7 +450,8 @@ uint32_t executeRPN(uint32_t tval, const struct RpnInstruction* program, uint8_t
         if (stackTop >= 2) {
           uint32_t b = stack[--stackTop];
           uint32_t a = stack[--stackTop];
-          stack[stackTop++] = a >> b;
+          // Clamp shift amount to 0-31 to prevent undefined behavior
+          stack[stackTop++] = a >> (b & 31);
         }
         break;
         
