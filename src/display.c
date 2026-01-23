@@ -78,7 +78,6 @@ static inline void lcd_rst_low(void) { gpio_put(LCD_PIN_RST, 0); }
 static inline void lcd_rst_high(void) { gpio_put(LCD_PIN_RST, 1); }
 
 static void lcd_write_cmd(uint8_t cmd) {
-    // Arduino: pull CS low, send command, leave CS low
     lcd_cs_low();
     lcd_dc_low();
     spi_write_blocking(LCD_SPI, &cmd, 1);
@@ -86,8 +85,6 @@ static void lcd_write_cmd(uint8_t cmd) {
 }
 
 static void lcd_write_data(uint8_t data) {
-    // Arduino: CS should already be low from command, set DC high, send data, raise CS
-    // But to be safe, ensure CS is low first
     lcd_cs_low();
     lcd_dc_high();
     spi_write_blocking(LCD_SPI, &data, 1);
