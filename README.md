@@ -106,3 +106,8 @@ Connect to the Pico via USB serial (115200 baud) and use these commands:
 > expr t*((t>>12)|(t>>8)) # Another example
 > expr t*(0xdeadbeef>>(t>>11)&15)/2|t>>3|t>>(t>>10)
 ```
+
+## License
+
+This project is licensed under the MIT License — see the LICENSE file for details.
+
