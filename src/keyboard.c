@@ -78,16 +78,16 @@ const Action fn2Layer[KEY_COUNT] = {
 ├───┼───┼───┼───┼───┤
 │P4 │P5 │P6 │FN1│FN2│
 ├───┼───┼───┼───┼───┤
-│P1 │P2 │P3 │   │   │
+│P1 │P2 │P3 │   │SAV│
 ├───┼───┼───┼───┼───┤
-│P- │   │P+ │   │SAV│
+│P- │   │P+ │   │   │
 └───┴───┴───┴───┴───┘
 */
 const Action memLayer[KEY_COUNT] = {
-    ACT_PRESET_7,   ACT_PRESET_8, ACT_PRESET_9, ACT_MEM,        ACT_DEL,
-    ACT_PRESET_4,   ACT_PRESET_5, ACT_PRESET_6, ACT_FN1,        ACT_FN2,
-    ACT_PRESET_1,   ACT_PRESET_2, ACT_PRESET_3, ACT_NONE,       ACT_NONE,
-    ACT_PRESET_DEC, ACT_NONE,     ACT_PRESET_INC, ACT_NONE,    ACT_SAVE
+    ACT_PRESET_7,   ACT_PRESET_8, ACT_PRESET_9,   ACT_MEM,     ACT_DEL,
+    ACT_PRESET_4,   ACT_PRESET_5, ACT_PRESET_6,   ACT_FN1,     ACT_FN2,
+    ACT_PRESET_1,   ACT_PRESET_2, ACT_PRESET_3,   ACT_NONE,    ACT_SAVE,
+    ACT_PRESET_DEC, ACT_NONE,     ACT_PRESET_INC, ACT_NONE,    ACT_NONE
 };
 
 void keyboard_init(void) {
