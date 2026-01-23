@@ -24,16 +24,20 @@ A handheld bytebeat synthesizer based on Raspberry Pico 2.
 
 ## Hardware Wiring
 
-### OLED Display (SSD1306 128x64 I2C)
+### LCD Display (Waveshare 2inch, ST7789, 240x320 SPI)
 
-| OLED Pin | Pico Pin | GPIO |
-|----------|----------|------|
-| VCC      | 3V3(OUT) | Pin 36 or VSYS Pin 39 (5V) |
-| GND      | GND      | Pin 38 (or any GND) |
-| SDA      | GPIO 4   | Pin 6 |
-| SCL      | GPIO 5   | Pin 7 |
+| LCD Pin | Function | Pico Pin | GPIO |
+|---------|----------|----------|------|
+| VCC     | Power    | 3V3(OUT) | Pin 36 |
+| GND     | Ground   | GND      | Pin 38 (or any GND) |
+| DIN     | SPI MOSI | GPIO 11  | Pin 15 |
+| CLK     | SPI SCK  | GPIO 10  | Pin 14 |
+| CS      | Chip Select | GPIO 9 | Pin 12 |
+| DC      | Data/Command | GPIO 8 | Pin 11 |
+| RST     | Reset    | GPIO 12  | Pin 16 |
+| BL      | Backlight | GPIO 13 | Pin 17 |
 
-**Note**: The OLED can work with either 3.3V or 5V power depending on your module. Try 5V (VSYS) if 3.3V doesn't work reliably.
+**Note**: This display uses SPI1 at 32 MHz. The module requires 3.3V power.
 
 ### Button Matrix (4x5 = 20 keys)
 
