@@ -15,6 +15,7 @@
 #include "display.h"
 #include "keyboard.h"
 #include "preset.h"
+#include "test_rpn.h"
 
 #define SAMPLE_US (1000000 / 8000)
 #define KEY_DEBOUNCE_MS 50
@@ -36,9 +37,6 @@ struct ProgramBuffer {
 static struct ProgramBuffer program_buffers[2];
 static volatile struct ProgramBuffer* active_program = &program_buffers[0];
 volatile uint32_t t_audio = 0;
-
-// Test function
-void test_rpn_vm(void);
 
 // I2C scanner for debugging
 void i2c_scan(void) {
@@ -141,6 +139,23 @@ void process_command(char* cmd) {
         printf("Setting I2C speed to 400kHz...\n");
         i2c_set_baudrate(i2c0, 400 * 1000);
         printf("I2C speed set to 400kHz\n");
+    } else if (strcmp(cmd, "testall") == 0) {
+        printf("Running all RPN VM tests...\n");
+        runAllTests(0, 1000, false);
+    } else if (strncmp(cmd, "testall ", 8) == 0) {
+        uint32_t samples = atoi(cmd + 8);
+        if (samples > 0 && samples <= 1000000) {
+            printf("Running all RPN VM tests with %lu samples...\n", (unsigned long)samples);
+            runAllTests(0, samples, true);
+        } else {
+            printf("Invalid sample count. Use 1-1000000\n");
+        }
+    } else if (strncmp(cmd, "testcase ", 9) == 0) {
+        int testIndex = atoi(cmd + 9);
+        printf("Running test case %d...\n", testIndex);
+        runSingleTest(testIndex, 0, 10000, true);
+    } else if (strcmp(cmd, "testlist") == 0) {
+        listTests();
     } else if (strcmp(cmd, "help") == 0) {
         printf("Commands:\n");
         printf("  play/start - Start audio playback\n");
@@ -151,6 +166,9 @@ void process_command(char* cmd) {
         printf("  clear      - Clear all presets\n");
         printf("  scan       - Scan I2C bus for devices\n");
         printf("  test       - Test display output\n");
+        printf("  testall [n]- Run all RPN VM unit tests (optional: n samples)\n");
+        printf("  testcase n - Run specific test case by index\n");
+        printf("  testlist   - List all available test cases\n");
         printf("  slow       - Set I2C to 100kHz (for troubleshooting)\n");
         printf("  fast       - Set I2C to 400kHz (default)\n");
         printf("  pins       - Show alternative pin options\n");
@@ -162,6 +180,8 @@ void process_command(char* cmd) {
         printf("  expr t*(0xdeadbeef>>(t>>11)&15)/2|t>>3|t>>(t>>10)\n");
         printf("  load 1\n");
         printf("  save 3\n");
+        printf("  testall 5000\n");
+        printf("  testcase 0\n");
     } else if (strncmp(cmd, "load ", 5) == 0) {
         int slot = atoi(cmd + 5);
         if (slot >= 1 && slot <= PRESET_COUNT) {

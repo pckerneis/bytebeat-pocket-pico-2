@@ -1,0 +1,57 @@
+# Makefile for standalone RPN VM tests
+# Compiles test_main.c with the real src/rpn_vm.c
+# Works on Linux, macOS, Windows (with MinGW/MSYS2)
+
+CC ?= gcc
+CFLAGS = -Wall -Wextra -O2 -std=c11 -I./src
+TARGET = test_standalone
+SOURCES = test_main.c src/rpn_vm.c
+
+# Detect OS
+ifeq ($(OS),Windows_NT)
+    TARGET := $(TARGET).exe
+    RM = del /Q
+else
+    RM = rm -f
+endif
+
+.PHONY: all clean run test list help
+
+all: $(TARGET)
+
+$(TARGET): $(SOURCES)
+	@echo "Building tests against REAL rpn_vm.c..."
+	$(CC) $(CFLAGS) -o $@ $^
+
+clean:
+	$(RM) $(TARGET)
+
+# Run all tests with default settings (10000 samples)
+run: $(TARGET)
+	./$(TARGET) all
+
+# Run all tests with verbose output
+test: $(TARGET)
+	./$(TARGET) all 100000 verbose
+
+# List available test cases
+list: $(TARGET)
+	./$(TARGET) list
+
+# Run specific test case (use: make single TEST=0)
+single: $(TARGET)
+	./$(TARGET) test $(TEST) 10000 verbose
+
+help:
+	@echo "Available targets:"
+	@echo "  make           - Build the test executable"
+	@echo "  make run       - Run all tests (10000 samples)"
+	@echo "  make test      - Run all tests (100000 samples, verbose)"
+	@echo "  make list      - List all available test cases"
+	@echo "  make single TEST=N - Run specific test case N"
+	@echo "  make clean     - Remove built executable"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make && make run"
+	@echo "  make single TEST=0"
+	@echo "  make test"
