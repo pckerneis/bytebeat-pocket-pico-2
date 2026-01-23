@@ -35,7 +35,7 @@ struct ProgramBuffer {
 
 static struct ProgramBuffer program_buffers[2];
 static volatile struct ProgramBuffer* active_program = &program_buffers[0];
-static volatile uint32_t t_audio = 0;
+volatile uint32_t t_audio = 0;
 
 // Test function
 void test_rpn_vm(void);

@@ -18,6 +18,7 @@ void ui_init(void) {
 void ui_handle_play_stop(void) {
     isPlaying = !isPlaying;
     if (isPlaying) {
+        t_audio = 0; // Reset t immediately when starting playback
         audio_enable(true);
         printf("Audio started - Playing: %s\n", textBuffer);
         show_toaster("Audio started");

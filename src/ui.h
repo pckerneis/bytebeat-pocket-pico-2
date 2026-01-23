@@ -10,6 +10,7 @@ extern uint8_t current_slot;
 extern volatile bool oledDirty;
 extern bool needsRecompile;
 extern bool needsResetT;
+extern volatile uint32_t t_audio;
 
 // Function prototypes
 void ui_init(void);
