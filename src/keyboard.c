@@ -26,32 +26,32 @@ KeyMode currentMode = MODE_BASE;
 ├───┼───┼───┼───┼───┤
 │ 1 │ 2 │ 3 │0b │0x │
 ├───┼───┼───┼───┼───┤
-│ ← │ 0 │ → │ . │ ▸ │
+│ 0 │ . │ ← │ → │ ▸ │
 └───┴───┴───┴───┴───┘
 */
 const Action baseLayer[KEY_COUNT] = {
-    ACT_DIGIT_7, ACT_DIGIT_8, ACT_DIGIT_9, ACT_MEM, ACT_DEL,
-    ACT_DIGIT_4, ACT_DIGIT_5, ACT_DIGIT_6, ACT_FN1, ACT_FN2,
-    ACT_DIGIT_1, ACT_DIGIT_2, ACT_DIGIT_3, ACT_0B,  ACT_0X,
-    ACT_LEFT,    ACT_DIGIT_0, ACT_RIGHT,   ACT_DOT, ACT_ENTER
+    ACT_DIGIT_7, ACT_DIGIT_8, ACT_DIGIT_9, ACT_MEM,   ACT_DEL,
+    ACT_DIGIT_4, ACT_DIGIT_5, ACT_DIGIT_6, ACT_FN1,   ACT_FN2,
+    ACT_DIGIT_1, ACT_DIGIT_2, ACT_DIGIT_3, ACT_0B,    ACT_0X,
+    ACT_DIGIT_0, ACT_DOT,     ACT_LEFT,    ACT_RIGHT, ACT_ENTER
 };
 
 /*
 ┌───┬───┬───┬───┬───┐
-│ + │ - │ * │MEM│DEL│
+│ + │ - │ % │MEM│DEL│
 ├───┼───┼───┼───┼───┤
-│ / │ % │ ~ │FN1│FN2│
+│ * │ / │ ~ │FN1│FN2│
 ├───┼───┼───┼───┼───┤
 │ & │ | │ ^ │ < │ > │
 ├───┼───┼───┼───┼───┤
-│ ← │ t │ → │ = │ ▸ │
+│ t │ = │ ← │ → │ ▸ │
 └───┴───┴───┴───┴───┘
 */
 const Action fn1Layer[KEY_COUNT] = {
-    ACT_ADD, ACT_SUB, ACT_MUL, ACT_MEM, ACT_DEL,
-    ACT_DIV, ACT_MOD, ACT_NOT, ACT_FN1, ACT_FN2,
-    ACT_AND, ACT_OR,  ACT_XOR, ACT_LT,  ACT_GT,
-    ACT_LEFT, ACT_T,  ACT_RIGHT, ACT_EQ, ACT_ENTER
+    ACT_ADD, ACT_SUB, ACT_MOD,  ACT_MEM,   ACT_DEL,
+    ACT_MUL, ACT_DIV, ACT_NOT,  ACT_FN1,   ACT_FN2,
+    ACT_AND, ACT_OR,  ACT_XOR,  ACT_LT,    ACT_GT,
+    ACT_T,   ACT_EQ,  ACT_LEFT, ACT_RIGHT, ACT_ENTER
 };
 
 /*
@@ -62,14 +62,14 @@ const Action fn1Layer[KEY_COUNT] = {
 ├───┼───┼───┼───┼───┤
 │ ? │ : │ " │ ( │ ) │
 ├───┼───┼───┼───┼───┤
-│ ← │   │ → │ ; │ ▸ │
+│ ! │ , │ ← │ → │ ▸ │
 └───┴───┴───┴───┴───┘
 */
 const Action fn2Layer[KEY_COUNT] = {
     ACT_ALPHA_A,  ACT_ALPHA_B, ACT_ALPHA_C, ACT_MEM,        ACT_DEL,
     ACT_ALPHA_D,  ACT_ALPHA_E, ACT_ALPHA_F, ACT_FN1,        ACT_FN2,
     ACT_QUESTION, ACT_COLON,   ACT_QUOTE,   ACT_LEFT_PAREN, ACT_RIGHT_PAREN,
-    ACT_LEFT,     ACT_NONE,    ACT_RIGHT,   ACT_SEMICOLON,  ACT_ENTER
+    ACT_NEG,      ACT_COMMA,   ACT_LEFT,    ACT_RIGHT,      ACT_ENTER
 };
 
 /*
@@ -80,14 +80,14 @@ const Action fn2Layer[KEY_COUNT] = {
 ├───┼───┼───┼───┼───┤
 │P1 │P2 │P3 │   │SAV│
 ├───┼───┼───┼───┼───┤
-│P- │   │P+ │   │   │
+│   │   │P- │P+ │ ▸ │
 └───┴───┴───┴───┴───┘
 */
 const Action memLayer[KEY_COUNT] = {
-    ACT_PRESET_7,   ACT_PRESET_8, ACT_PRESET_9,   ACT_MEM,     ACT_DEL,
-    ACT_PRESET_4,   ACT_PRESET_5, ACT_PRESET_6,   ACT_FN1,     ACT_FN2,
-    ACT_PRESET_1,   ACT_PRESET_2, ACT_PRESET_3,   ACT_NONE,    ACT_SAVE,
-    ACT_PRESET_DEC, ACT_NONE,     ACT_PRESET_INC, ACT_NONE,    ACT_NONE
+    ACT_PRESET_7, ACT_PRESET_8, ACT_PRESET_9,   ACT_MEM,        ACT_DEL,
+    ACT_PRESET_4, ACT_PRESET_5, ACT_PRESET_6,   ACT_FN1,        ACT_FN2,
+    ACT_PRESET_1, ACT_PRESET_2, ACT_PRESET_3,   ACT_NONE,       ACT_SAVE,
+    ACT_NONE,     ACT_NONE,     ACT_PRESET_DEC, ACT_PRESET_INC, ACT_ENTER
 };
 
 void keyboard_init(void) {
@@ -243,10 +243,11 @@ bool keyboard_execute_action(Action action) {
         case ACT_LT:  return insertChar('<');
         case ACT_EQ:  return insertChar('=');
         case ACT_DOT: return insertChar('.');
-        case ACT_QUOTE: return insertChar('"');
-        case ACT_COLON: return insertChar(':');
-        case ACT_SEMICOLON: return insertChar(';');
-        case ACT_QUESTION: return insertChar('?');
+        // case ACT_QUOTE: return insertChar('"');
+        // case ACT_COMMA: return insertChar(',');
+        // case ACT_COLON: return insertChar(':');
+        // case ACT_SEMICOLON: return insertChar(';');
+        // case ACT_QUESTION: return insertChar('?');
         case ACT_0B: return insertString("0b");
         case ACT_0X: return insertString("0x");
             
