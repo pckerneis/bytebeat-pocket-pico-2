@@ -14,19 +14,19 @@ void audio_init() {
 
     pwm_config cfg = pwm_get_default_config();
     pwm_config_set_clkdiv(&cfg, 1.0f);
-    pwm_config_set_wrap(&cfg, 255); // 8-bit audio
+    pwm_config_set_wrap(&cfg, 255); // ~977 kHz PWM (250MHz / 256)
 
     pwm_init(slice, &cfg, true);
-    
-    // Start with silence (center value)
-    pwm_set_gpio_level(AUDIO_PIN, 128);
+
+    // Start with silence (0 = no PWM switching = no carrier noise)
+    pwm_set_gpio_level(AUDIO_PIN, 0);
 }
 
 void audio_enable(bool enable) {
     audio_enabled = enable;
     if (!enable) {
         // Set to silence when disabled
-        pwm_set_gpio_level(AUDIO_PIN, 128);
+        pwm_set_gpio_level(AUDIO_PIN, 0);
     }
 }
 
