@@ -7,10 +7,12 @@
 #include <stdio.h>
 
 // GPIO pin configuration
-// Columns are outputs (driven LOW to scan) - DRIVE side
-const uint8_t col_pins[COLS] = {20, 21, 22, 26, 27};
-// Rows are inputs (with pullups) - SENSE side
-const uint8_t row_pins[ROWS] = {16, 17, 18, 19};
+// Columns are inputs (with pullups) - SENSE side
+// Physical pins 26,25,24,22,21 → GPIO 20,19,18,17,16
+const uint8_t col_pins[COLS] = {20, 19, 18, 17, 16};
+// Rows are outputs (driven LOW to scan) - DRIVE side
+// Physical pins 32,31,29,27 → GPIO 27,26,22,21
+const uint8_t row_pins[ROWS] = {27, 26, 22, 21};
 
 // Key state tracking
 uint8_t keyStates[KEY_COUNT] = {0};
@@ -69,7 +71,7 @@ const Action fn2Layer[KEY_COUNT] = {
     ACT_ALPHA_A,  ACT_ALPHA_B, ACT_ALPHA_C, ACT_MEM,        ACT_DEL,
     ACT_ALPHA_D,  ACT_ALPHA_E, ACT_ALPHA_F, ACT_FN1,        ACT_FN2,
     ACT_QUESTION, ACT_COLON,   ACT_QUOTE,   ACT_LEFT_PAREN, ACT_RIGHT_PAREN,
-    ACT_NEG,      ACT_COMMA,   ACT_LEFT,    ACT_RIGHT,      ACT_ENTER
+    ACT_NONE,      ACT_NONE,   ACT_LEFT,    ACT_RIGHT,      ACT_ENTER
 };
 
 /*
@@ -91,36 +93,36 @@ const Action memLayer[KEY_COUNT] = {
 };
 
 void keyboard_init(void) {
-    // Configure column pins as outputs (idle HIGH) - DRIVE side
-    for (int c = 0; c < COLS; c++) {
-        gpio_init(col_pins[c]);
-        gpio_set_dir(col_pins[c], GPIO_OUT);
-        gpio_put(col_pins[c], 1); // Idle HIGH
-    }
-    
-    // Configure row pins as inputs with pullups - SENSE side
+    // Configure row pins as outputs (idle HIGH) - DRIVE side
     for (int r = 0; r < ROWS; r++) {
         gpio_init(row_pins[r]);
-        gpio_set_dir(row_pins[r], GPIO_IN);
-        gpio_pull_up(row_pins[r]);
+        gpio_set_dir(row_pins[r], GPIO_OUT);
+        gpio_put(row_pins[r], 1); // Idle HIGH
     }
-    
+
+    // Configure column pins as inputs with pullups - SENSE side
+    for (int c = 0; c < COLS; c++) {
+        gpio_init(col_pins[c]);
+        gpio_set_dir(col_pins[c], GPIO_IN);
+        gpio_pull_up(col_pins[c]);
+    }
+
     printf("Keyboard matrix initialized\n");
 }
 
 void keyboard_scan(void) {
-    // Scan all keys - drive each column LOW and sense rows
-    for (int c = 0; c < COLS; c++) {
-        gpio_put(col_pins[c], 0); // Drive column LOW
+    // Scan all keys - drive each row LOW and sense columns
+    for (int r = 0; r < ROWS; r++) {
+        gpio_put(row_pins[r], 0); // Drive row LOW
         sleep_us(10); // Settle time for stable reading
-        
-        for (int r = 0; r < ROWS; r++) {
+
+        for (int c = 0; c < COLS; c++) {
             uint8_t keyIndex = r * COLS + c;
-            keyStates[keyIndex] = (gpio_get(row_pins[r]) == 0) ? 1 : 0;
+            keyStates[keyIndex] = (gpio_get(col_pins[c]) == 0) ? 1 : 0;
         }
-        
-        gpio_put(col_pins[c], 1); // Return to HIGH
-        sleep_us(5); // Small delay before next column
+
+        gpio_put(row_pins[r], 1); // Return to HIGH
+        sleep_us(5); // Small delay before next row
     }
 }
 
