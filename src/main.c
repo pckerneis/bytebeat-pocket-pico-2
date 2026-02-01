@@ -329,7 +329,7 @@ int main() {
     program_buffers[0].length = 0;
     program_buffers[1].length = 0;
 
-    set_sys_clock_khz(250000, true);
+    set_sys_clock_khz(125000, true);
     stdio_init_all();
     
     // Wait for serial connection
